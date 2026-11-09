@@ -84,3 +84,17 @@ Firmware and software: **MPL-2.0**. Documentation and website: **CC BY-SA 4.0**.
 ## Contributions
 
 Contributions require a Developer Certificate of Origin (DCO) sign-off. Use `git commit -s` to add a `Signed-off-by` line to each contribution commit.
+
+### Error reporting
+
+`error()` returns `Error::None`, `InvalidOptions`, `AllocationFailed`,
+`TimeZoneSetupFailed`, or `InvalidTimestamp`. `lastError()` supplies diagnostic
+text; `valid()` independently reports whether NTP has established a usable clock.
+
+Successful configuration clears errors. Reapplying unchanged options preserves
+an invalid-timestamp error until a valid NTP notification arrives or the options
+change. Valid NTP notifications clear timestamp failures, while rejected
+configuration changes remain visible until a successful configuration call.
+Queries, callback registration, network changes and ordinary retry ticks do not
+clear errors. Configuration failures are returned to the caller; asynchronous
+timestamp failures also use the status callback.
