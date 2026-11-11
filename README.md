@@ -1,6 +1,12 @@
-# MDS_Time
+# MDS_Time 0.2.0
 
 Background NTP synchronization with UTC time and POSIX time zone conversion.
+
+## Migration from 0.1.0
+
+Register `setNetworkReadyCallback()` and replace `tick(networkReady)` with
+`tick()`. Missing or cleared callbacks mean unavailable; registration is separate
+from `begin(options)` and does not invalidate otherwise valid options.
 
 ## Requirements
 

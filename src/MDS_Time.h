@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * MDS_Time 0.1.0 - https://home.marcspencer.com/mds-time
+ * MDS_Time 0.2.0 - https://home.marcspencer.com/mds-time
  *
  * Copyright (c) 2026 Marc D. Spencer.
  * All Rights Reserved under the applicable license.
