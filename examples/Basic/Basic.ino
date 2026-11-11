@@ -19,6 +19,7 @@
 MDS_WiFi wifi;
 MDS_Time clockService;
 
+// Configure connectivity, readiness sources, and service options.
 void setup() {
     Serial.begin(115200);
 
@@ -29,6 +30,11 @@ void setup() {
         MDS_WiFi::ConnectionPolicy::RetrySavedNetworkAsync;
 
     wifi.begin(wifiOptions);
+
+    clockService.setNetworkReadyCallback([]() {
+        // Use the connection manager's station and IP readiness.
+        return wifi.ready();
+    });
 
     MDS_Time::Options timeOptions;
 
@@ -43,9 +49,10 @@ void setup() {
     }
 }
 
+// Service background work and report newly available data.
 void loop() {
     wifi.tick();
-    clockService.tick(wifi.ready());
+    clockService.tick();
 
     static uint32_t lastReport = 0;
     const uint32_t now = millis();

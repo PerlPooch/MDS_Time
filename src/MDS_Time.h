@@ -57,6 +57,9 @@ public:
 
 	using StatusCallback = std::function<void(const String&)>;
 
+	// Query a prerequisite without taking ownership of its service.
+	using ReadinessCallback = std::function<bool()>;
+
 	// Create an unconfigured time service; begin() supplies its options.
 	MDS_Time() = default;
 
@@ -72,8 +75,8 @@ public:
 	// Copy options and configure local conversion; unchanged options are a no-op.
 	bool begin(const Options& options);
 
-	// Start/restart background SNTP when networkReady; never wait for a response.
-	void tick(bool networkReady);
+	// Process synchronization notices and start SNTP when the network callback is ready.
+	void tick();
 
 	// True only after a successful NTP notification with a usable epoch.
 	bool valid() const {
@@ -111,6 +114,12 @@ public:
 		return errorText_;
 	}
 
+	// Query connectivity from tick(); an unset callback means unavailable.
+	// Keep callbacks nonblocking; nullptr clears the registered source.
+	void setNetworkReadyCallback(ReadinessCallback callback) {
+		networkReadyCallback_ = callback;
+	}
+
 	// Register the time service status callback; nullptr clears it.
 	void setStatusCallback(StatusCallback callback) {
 		statusCallback_ = callback;
@@ -136,6 +145,7 @@ private:
 	Error error_ = Error::None;
 	const char* errorText_ = "";
 	StatusCallback statusCallback_;
+	ReadinessCallback networkReadyCallback_;
 	uint32_t intervalSeconds_ = DefaultInterval;
 	uint32_t configurationVersion_ = 0;
 	time_t lastSyncUtc_ = 0;

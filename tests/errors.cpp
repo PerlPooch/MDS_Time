@@ -22,6 +22,7 @@
 using Error = MDS_Time::Error;
 using TimeZoneMode = MDS_Time::TimeZoneMode;
 static time_t currentUtc = 0;
+static bool networkReady = false;
 
 // Return a deterministic system clock for timestamp validation.
 time_t fakeTime(time_t* result) {
@@ -44,13 +45,18 @@ static void notify(time_t utc) {
 // Exercise each failure code, recovery path and non-clearing operation.
 int main() {
 	MDS_Time clock;
+	clock.setNetworkReadyCallback([]() {
+		// Expose the connectivity selected by each scenario.
+		return networkReady;
+	});
 	MDS_Time::Options options;
 	std::vector<String> messages;
 
 	assert(clock.error() == Error::None);
 	assert(std::strlen(clock.lastError()) == 0);
 	assert(!clock.valid());
-	clock.tick(false);
+	networkReady = false;
+	clock.tick();
 	assert(clock.error() == Error::None);
 
 	clock.setStatusCallback([&](const String& message) {
@@ -90,11 +96,13 @@ int main() {
 	assert(clock.error() == Error::None);
 	assert(std::strlen(clock.lastError()) == 0);
 
-	clock.tick(true);
+	networkReady = true;
+	clock.tick();
 	notify(0);
 	const auto beforeNotification = messages.size();
 	assert(clock.error() == Error::None);
-	clock.tick(true);
+	networkReady = true;
+	clock.tick();
 	assert(messages.size() == beforeNotification + 1);
 	assert(messages.back() == "Time: invalid NTP timestamp");
 	assert(clock.error() == Error::InvalidTimestamp);
@@ -105,8 +113,10 @@ int main() {
 	assert(clock.configurationVersion() == version);
 	assert(clock.error() == Error::InvalidTimestamp);
 	clock.setStatusCallback(nullptr);
-	clock.tick(false);
-	clock.tick(true);
+	networkReady = false;
+	clock.tick();
+	networkReady = true;
+	clock.tick();
 
 	struct tm local {};
 
@@ -117,7 +127,8 @@ int main() {
 	assert(clock.error() == Error::InvalidTimestamp);
 
 	notify(1700000000);
-	clock.tick(true);
+	networkReady = true;
+	clock.tick();
 	assert(clock.valid());
 	assert(clock.error() == Error::None);
 	assert(std::strlen(clock.lastError()) == 0);
@@ -126,7 +137,8 @@ int main() {
 	options.intervalSeconds = 1;
 	assert(!clock.begin(options));
 	notify(1700000100);
-	clock.tick(true);
+	networkReady = true;
+	clock.tick();
 	assert(clock.valid());
 	assert(clock.error() == Error::InvalidOptions);
 	options.intervalSeconds = MDS_Time::DefaultInterval;
@@ -135,7 +147,8 @@ int main() {
 
 	// An explicit options change clears an earlier timestamp failure.
 	notify(0);
-	clock.tick(true);
+	networkReady = true;
+	clock.tick();
 	assert(clock.error() == Error::InvalidTimestamp);
 	options.timeZone = "UTC0";
 	assert(clock.begin(options));

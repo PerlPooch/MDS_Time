@@ -25,6 +25,7 @@ With no saved Wi-Fi credentials, join the `Clock <MAC>` access point (password `
 MDS_WiFi wifi;
 MDS_Time clockService;
 
+// Configure connectivity, readiness sources, and service options.
 void setup() {
     Serial.begin(115200);
 
@@ -35,6 +36,11 @@ void setup() {
         MDS_WiFi::ConnectionPolicy::RetrySavedNetworkAsync;
 
     wifi.begin(wifiOptions);
+
+    clockService.setNetworkReadyCallback([]() {
+        // Use the connection manager's station and IP readiness.
+        return wifi.ready();
+    });
 
     MDS_Time::Options timeOptions;
 
@@ -49,9 +55,10 @@ void setup() {
     }
 }
 
+// Service background work and report newly available data.
 void loop() {
     wifi.tick();
-    clockService.tick(wifi.ready());
+    clockService.tick();
 
     static uint32_t lastReport = 0;
     const uint32_t now = millis();
@@ -98,3 +105,14 @@ configuration changes remain visible until a successful configuration call.
 Queries, callback registration, network changes and ordinary retry ticks do not
 clear errors. Configuration failures are returned to the caller; asynchronous
 timestamp failures also use the status callback.
+
+### Readiness callbacks
+
+Register `setNetworkReadyCallback()` before expecting network work to start.
+Callbacks return `bool` and run synchronously from `tick()`; keep them quick and
+nonblocking. An unset callback returns false in effect. Pass `nullptr` to clear
+one. Registration is independent of `begin(options)`: missing callbacks do not
+invalidate options or overwrite errors. Call `tick()` without arguments.
+
+Time still processes synchronization notifications while waiting; a synchronized
+clock remains valid when network readiness is lost or its callback is cleared.

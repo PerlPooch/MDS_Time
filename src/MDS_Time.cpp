@@ -140,10 +140,12 @@ bool MDS_Time::begin(const Options& options) {
 }
 
 // Service synchronization notices and start SNTP when network readiness allows.
-void MDS_Time::tick(bool networkReady) {
+void MDS_Time::tick() {
 	if (!configured_) {
 		return;
 	}
+
+	const bool networkReady = networkReadyCallback_ && networkReadyCallback_();
 
 	if (networkReady && (!started_ || !networkWasReady_)) {
 		if (started_) {
